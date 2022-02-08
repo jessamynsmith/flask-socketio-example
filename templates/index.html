@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+
+<h3>Title</h3>
+
+<div>
+    <form id="message_form">
+        <input type="text" id="message" name="message">
+        <input type="submit" value="Send">
+    </form>
+</div>
+
+<div id="messages"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+<script type="text/javascript" charset="utf-8">
+    let messagesDiv = document.getElementById('messages');
+    
+    let socket = io();
+    socket.on('connect', function() {
+        console.log('connected');
+    });
+    socket.on('message', function(message) {
+        let messageNode = document.createElement('div');
+        messageNode.appendChild(document.createTextNode(message))
+        messagesDiv.appendChild(messageNode)
+    });
+    
+    let form = document.getElementById('message_form')
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        let messageElem = document.getElementById('message');
+        let message = messageElem.value;
+        if (message) {
+            socket.emit('message', message)
+        }
+    });
+</script>
+
+</body>
+</html> 
