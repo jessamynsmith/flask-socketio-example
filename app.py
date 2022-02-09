@@ -1,7 +1,7 @@
 import asyncio, os, socketio
 
 import flask
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from flask_socketio import emit, send, SocketIO
 from deepgram import Deepgram
 
@@ -27,7 +27,28 @@ def transcript_handler(data):
     if 'channel' in data:
         transcript = data['channel']['alternatives'][0]['transcript']
         print('received transcript:', transcript)
-        send(transcript, namespace='/', to=sid)
+        # send(transcript, namespace='/', to=socket_sid)
+
+
+async def connect_to_deepgram():
+    global dg_socket, namespace
+
+    # Initialize the Deepgram SDK
+    dg_client = Deepgram(DEEPGRAM_API_KEY)
+
+    # Create a websocket connection to Deepgram
+    try:
+        dg_socket = await dg_client.transcription.live({'punctuate': True})
+
+        # Listen for the connection to close
+        dg_socket.registerHandler(dg_socket.event.CLOSE, lambda c: print(f'Connection closed with code {c}.'))
+
+        # Print incoming transcription objects
+        dg_socket.registerHandler(dg_socket.event.TRANSCRIPT_RECEIVED, transcript_handler)
+
+        # await process_audio(dg_socket)
+    except Exception as e:
+        print(f'Could not open socket: {e}')
 
 
 async def process_audio(connection):
@@ -42,6 +63,7 @@ async def process_audio(connection):
             connection.send(chunk)
             await asyncio.sleep(CHUNK_RATE_SEC)
             chunk = audio.read(CHUNK_SIZE_BYTES)
+            print('chunk')
 
     # Indicate that we've finished sending data
     print('finishing')
@@ -68,9 +90,9 @@ async def process_audio(connection):
 
 @socket_io.on('connect')
 def handle_connection():
-    global namespace, sid
+    global namespace, socket_sid
     namespace = flask.request.namespace
-    sid = flask.request.sid
+    socket_sid = flask.request.sid
     print('client connected', flask.request.namespace, flask.request.sid)
 
 
@@ -89,30 +111,15 @@ def handle_message(data):
 
 @app.route("/")
 async def index():
-    global dg_socket, namespace
-
-    # namespace = flask.request.namespace
-    # print('namespace', namespace)
-
-    # Initialize the Deepgram SDK
-    dg_client = Deepgram(DEEPGRAM_API_KEY)
-
-    # Create a websocket connection to Deepgram
-    try:
-        dg_socket = await dg_client.transcription.live({'punctuate': True})
-
-        # Listen for the connection to close
-        dg_socket.registerHandler(dg_socket.event.CLOSE, lambda c: print(f'Connection closed with code {c}.'))
-
-        # Print incoming transcription objects
-        dg_socket.registerHandler(dg_socket.event.TRANSCRIPT_RECEIVED, transcript_handler)
-
-        # await process_audio(dg_socket)
-    except Exception as e:
-        print(f'Could not open socket: {e}')
-
-
     return render_template('index.html')
+
+
+@app.route("/api/audio", methods=['POST'])
+async def audio_api():
+    print('api audio')
+    await connect_to_deepgram()
+    await process_audio(dg_socket)
+    return jsonify({'result': 'hi'})
 
 
 if __name__ == '__main__':

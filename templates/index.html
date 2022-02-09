@@ -34,6 +34,11 @@
         let message = messageElem.value;
         if (message) {
             socket.emit('message', message)
+            fetch('/api/audio', {
+                method: 'POST'
+            }).then(function(response) {
+                console.log(response)
+            })
         }
     });
 </script>
