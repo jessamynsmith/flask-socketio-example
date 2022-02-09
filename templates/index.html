@@ -43,6 +43,7 @@
         console.log('connected');
     });
     socket.on('message', function(message) {
+        console.log('message')
         let messageNode = document.createElement('div');
         messageNode.appendChild(document.createTextNode(message))
         messagesDiv.appendChild(messageNode)

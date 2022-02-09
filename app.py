@@ -27,6 +27,7 @@ dg_socket = None
 
 
 def transcript_handler(data):
+    print('transcript handler')
     if 'channel' in data:
         transcript = data['channel']['alternatives'][0]['transcript']
         print('received transcript:', transcript)
@@ -74,7 +75,7 @@ async def process_audio(connection, filepath):
             connection.send(chunk)
             await asyncio.sleep(CHUNK_RATE_SEC)
             chunk = audio.read(CHUNK_SIZE_BYTES)
-            # print('chunk')
+            print('chunk')
 
     # Indicate that we've finished sending data
     print('finishing')
@@ -90,8 +91,8 @@ def handle_connection():
 @socket_io.on('message')
 def handle_message(data):
     print('received message: ', data, flask.request.namespace, flask.request.sid)
-    send(f"You said: {data}")
-    
+    send(f"You said: {data}", json=False, namespace='', broadcast=True, include_self=True)
+
     # loop = asyncio.get_event_loop()
     # try:
     #     loop.run_until_complete(process_audio(dg_socket))
