@@ -93,6 +93,9 @@ def handle_message(data):
     print('received message: ', data, flask.request.namespace, flask.request.sid)
     send(f"You said: {data}", json=False, namespace='', broadcast=True, include_self=True)
 
+    # await connect_to_deepgram()
+    # await process_audio(dg_socket, filepath)
+
     # loop = asyncio.get_event_loop()
     # try:
     #     loop.run_until_complete(process_audio(dg_socket))
