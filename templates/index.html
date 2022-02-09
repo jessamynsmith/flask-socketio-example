@@ -5,6 +5,12 @@
 <h3>Title</h3>
 
 <div>
+    <a id="download">Download</a>
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+</div>
+
+<div>
     <form id="message_form">
         <input type="text" id="message" name="message">
         <input type="submit" value="Send">
@@ -16,6 +22,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8">
     let messagesDiv = document.getElementById('messages');
+    
+    let postAudio = (data) => {
+        let audioBlob = new Blob(data, {type : "audio/wav"});
+        console.log(audioBlob.size);
+        
+        let fd = new FormData();
+        fd.append('audio', audioBlob, 'audio.wav');
+
+        fetch('/api/audio', {
+                method: 'POST',
+                body: fd
+            }).then(function(response) {
+                console.log(response)
+            })
+    }
     
     let socket = io();
     socket.on('connect', function() {
@@ -34,14 +55,55 @@
         let message = messageElem.value;
         if (message) {
             socket.emit('message', message)
-            fetch('/api/audio', {
-                method: 'POST'
-            }).then(function(response) {
-                console.log(response)
-            })
         }
     });
 </script>
+
+<script>
+  const downloadLink = document.getElementById('download');
+  const startButton = document.getElementById('start');
+  const stopButton = document.getElementById('stop');
+
+  const handleSuccess = function(stream) {
+      console.log('setting up recorder')
+    const options = {
+          mimeType: 'audio/webm'
+      };
+    const recordedChunks = [];
+    const mediaRecorder = new MediaRecorder(stream, options);
+
+    mediaRecorder.addEventListener('dataavailable', function(e) {
+        console.log('data available')
+        if (e.data.size > 0) {
+            console.log('size greater than 0')
+            recordedChunks.push(e.data);
+        } 
+    });
+
+    mediaRecorder.addEventListener('stop', function() {
+      downloadLink.href = URL.createObjectURL(new Blob(recordedChunks));
+      downloadLink.download = 'acetest.wav';
+        
+      postAudio(recordedChunks)
+    });
+    
+    startButton.addEventListener('click', function() {
+        console.log("starting recorder")
+        mediaRecorder.start();
+    });
+
+    stopButton.addEventListener('click', function() {
+        console.log("stopping recorder")
+        mediaRecorder.stop();
+        // postAudio(recordedChunks)
+    });
+  };
+
+  navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      .then(handleSuccess);
+
+</script>
+
 
 </body>
 </html> 

@@ -1,13 +1,18 @@
-import asyncio, os, socketio
+import asyncio, datetime, os, socketio
 
 import flask
-from flask import Flask, render_template, jsonify
+from flask import Flask, jsonify, render_template, request
 from flask_socketio import emit, send, SocketIO
 from deepgram import Deepgram
 
 
 DEEPGRAM_API_KEY = os.environ.get('DEEPGRAM_API_KEY')
 PATH_TO_FILE = 'you-can-stay-at-home.wav'
+
+UPLOAD_DIRECTORY = "uploads"
+
+if not os.path.exists(UPLOAD_DIRECTORY):
+    os.makedirs(UPLOAD_DIRECTORY)
 
 
 app = Flask(__name__)
@@ -114,13 +119,24 @@ async def index():
     return render_template('index.html')
 
 
+@app.route("/audio")
+async def audio():
+    return render_template('audio.html')
+
+
 @app.route("/api/audio", methods=['POST'])
 async def audio_api():
-    print('api audio')
-    await connect_to_deepgram()
-    await process_audio(dg_socket)
-    return jsonify({'result': 'hi'})
+    file = request.files['audio']
+
+    now = datetime.datetime.now().isoformat()
+    filename = f"upload_{now}.webm"
+
+    file.save(os.path.join(UPLOAD_DIRECTORY, filename))
+
+    # await connect_to_deepgram()
+    # await process_audio(dg_socket)
+    return jsonify({'filename': filename})
 
 
 if __name__ == '__main__':
-    socket_io.run(app)
+    socket_io.run(app, port=8000)
