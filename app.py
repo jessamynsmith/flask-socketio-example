@@ -1,8 +1,8 @@
-import asyncio, datetime, os, socketio
+import asyncio, datetime, os
 
 import flask
 from flask import Flask, jsonify, render_template, request
-from flask_socketio import emit, send, SocketIO
+from flask_socketio import send, SocketIO
 from deepgram import Deepgram
 
 
@@ -77,23 +77,6 @@ async def process_audio(connection):
     print('finishing')
     await connection.finish()
     print('finished')
-
-
-# @sio.on('connect')
-# def connect(sid, environ):
-#     print("connected: ", sid)
-# 
-# 
-# @sio.on('message')
-# async def message(sid, data):
-#     print("message ", data)
-#     # await asyncio.sleep(1 * random.random())
-#     # print('waited', data)
-# 
-# 
-# @sio.on('disconnect')
-# def disconnect(sid):
-#     print('disconnect ', sid)
 
 
 @socket_io.on('connect')
