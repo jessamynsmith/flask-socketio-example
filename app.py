@@ -19,19 +19,22 @@ app.config['SECRET_KEY'] = 'secret!'
 socket_io = SocketIO(app)
 
 dg_socket = None
-namespace = None
-socket_sid = None
 
 
 def transcript_handler(data):
     if 'channel' in data:
         transcript = data['channel']['alternatives'][0]['transcript']
         print('received transcript:', transcript)
-        # send(transcript, namespace='/', to=socket_sid)
+        send(transcript, json=False, namespace='', broadcast=True, include_self=True)
+        print("sent")
 
 
 async def connect_to_deepgram():
-    global dg_socket, namespace
+    global dg_socket
+
+    if dg_socket:
+        print('Socket to deepgram is already open')
+        return
 
     # Initialize the Deepgram SDK
     dg_client = Deepgram(DEEPGRAM_API_KEY)
@@ -63,7 +66,7 @@ async def process_audio(connection):
             connection.send(chunk)
             await asyncio.sleep(CHUNK_RATE_SEC)
             chunk = audio.read(CHUNK_SIZE_BYTES)
-            print('chunk')
+            # print('chunk')
 
     # Indicate that we've finished sending data
     print('finishing')
@@ -90,9 +93,6 @@ async def process_audio(connection):
 
 @socket_io.on('connect')
 def handle_connection():
-    global namespace, socket_sid
-    namespace = flask.request.namespace
-    socket_sid = flask.request.sid
     print('client connected', flask.request.namespace, flask.request.sid)
 
 
