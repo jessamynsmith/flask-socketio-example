@@ -8,8 +8,8 @@ socket_io = SocketIO(app)
 
 
 @socket_io.on('connect')
-def handle_connection(data):
-    print('client connected: ', data)
+def handle_connection():
+    print('client connected')
 
 
 @socket_io.on('message')
@@ -19,7 +19,7 @@ def handle_message(data):
 
 
 @app.route("/")
-def hello_world():
+async def hello_world():
     return render_template('index.html')
 
 
