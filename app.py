@@ -59,10 +59,13 @@ async def connect_to_deepgram():
         print(f'Could not open socket: {e}')
 
 
-async def process_audio(connection):
+async def process_audio(connection, filepath):
     print('processing audio')
+    if not filepath:
+        filepath = PATH_TO_FILE
+
     # Open the file
-    with open(PATH_TO_FILE, 'rb') as audio:
+    with open(filepath, 'rb') as audio:
         # Chunk up the audio to send
         CHUNK_SIZE_BYTES = 8192
         CHUNK_RATE_SEC = 0.001
@@ -113,11 +116,12 @@ async def audio_api():
 
     now = datetime.datetime.now().isoformat()
     filename = f"upload_{now}.webm"
+    filepath = os.path.join(UPLOAD_DIRECTORY, filename)
 
-    file.save(os.path.join(UPLOAD_DIRECTORY, filename))
+    file.save(filepath)
 
-    # await connect_to_deepgram()
-    # await process_audio(dg_socket)
+    await connect_to_deepgram()
+    await process_audio(dg_socket, filepath)
     return jsonify({'filename': filename})
 
 
