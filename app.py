@@ -2,7 +2,7 @@ import asyncio, datetime, os
 
 import flask
 from flask import Flask, jsonify, render_template, request
-from flask_socketio import send, SocketIO
+from flask_socketio import send, SocketIO, join_room, leave_room
 from deepgram import Deepgram
 
 
@@ -31,7 +31,8 @@ def transcript_handler(data):
     if 'channel' in data:
         transcript = data['channel']['alternatives'][0]['transcript']
         print('received transcript:', transcript)
-        send(transcript, json=False, namespace='', broadcast=True, include_self=True)
+        socket_io.emit(transcript + ' has entered the room.', namespace='/test', to='my_room')
+        # send(transcript, json=False, namespace='', to='my_room')
         print("sent")
 
 
@@ -62,6 +63,7 @@ async def connect_to_deepgram():
 
 async def process_audio(connection, filepath):
     print('processing audio')
+    send('processing audio', json=False, namespace='', broadcast=True, include_self=True)
     if not filepath:
         filepath = PATH_TO_FILE
 
@@ -83,15 +85,35 @@ async def process_audio(connection, filepath):
     print('finished')
 
 
+@socket_io.on('join', namespace='/test')
+def on_join(data):
+    print('on_join')
+    username = data['username']
+    room = data['room']
+    join_room(room)
+    send(username + ' has entered the room.', namespace='/test', to=room)
+
+
+@socket_io.on('leave', namespace='/test')
+def on_leave(data):
+    print('on_leave')
+    username = data['username']
+    room = data['room']
+    leave_room(room)
+    send(username + ' has left the room.', to=room)
+
+
 @socket_io.on('connect')
 def handle_connection():
     print('client connected', flask.request.namespace, flask.request.sid)
+    send("connected", json=False, namespace='', broadcast=True, include_self=True)
 
 
-@socket_io.on('message')
+@socket_io.on('message', namespace='/test')
 def handle_message(data):
     print('received message: ', data, flask.request.namespace, flask.request.sid)
-    send(f"You said: {data}", json=False, namespace='', broadcast=True, include_self=True)
+    socket_io.send(f"You said: {data}", namespace='/test', to='my_room')
+    # send(f"You said: {data}", json=False, namespace='', broadcast=True, include_self=True)
 
     # await connect_to_deepgram()
     # await process_audio(dg_socket, filepath)
@@ -111,7 +133,15 @@ async def index():
 
 @app.route("/audio")
 async def audio():
+    send("audio connected", json=False, namespace='', broadcast=True, include_self=True)
     return render_template('audio.html')
+
+
+@app.route("/api/test", methods=['POST'])
+async def test_api():
+    print('test api')
+    socket_io.send("test", namespace='/test', to='my_room')
+    return jsonify({'sent': "processed"})
 
 
 @app.route("/api/audio", methods=['POST'])
@@ -126,6 +156,9 @@ async def audio_api():
 
     await connect_to_deepgram()
     await process_audio(dg_socket, filepath)
+
+    send("processed", json=False, namespace='', broadcast=True, include_self=True)
+
     return jsonify({'filename': filename})
 
 
